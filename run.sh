@@ -25,12 +25,20 @@ server {
   server_name           $HOST;
   access_log            /dev/stdout;
   error_log             /dev/stderr;
+EOF
 
+if [ "${SCHEME}" == "https" ]; then
+
+cat <<EOF >> $CONFDIR/default.conf
   # Enforce SSL
   if (\$http_x_forwarded_proto != 'https') {
     rewrite ^ https://\$host$request_uri? permanent;
   } 
+EOF
 
+fi
+
+cat <<EOF >> $CONFDIR/default.conf
   auth_basic "Protected Kibana";
   auth_basic_user_file /passwords;
   proxy_read_timeout 90;
@@ -53,7 +61,7 @@ server {
 
   location = / {
     if (\$request_method = OPTIONS ) {
-      add_header Access-Control-Allow-Origin "https://$HOST";
+      add_header Access-Control-Allow-Origin "$SCHEME://$HOST";
       add_header Access-Control-Allow-Methods "GET, OPTIONS";
       add_header Access-Control-Allow-Headers "Authorization";
       add_header Access-Control-Allow-Credentials "true";
@@ -71,7 +79,7 @@ server {
     root /app;
 
     if (\$request_method = OPTIONS ) {
-      add_header Access-Control-Allow-Origin "https://$HOST";
+      add_header Access-Control-Allow-Origin "$SCHEME://$HOST";
       add_header Access-Control-Allow-Methods "GET, OPTIONS";
       add_header Access-Control-Allow-Headers "Authorization";
       add_header Access-Control-Allow-Credentials "true";
