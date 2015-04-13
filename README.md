@@ -9,6 +9,7 @@ docker run --name elasticsearch-hq \
            -p 8080:80 \
            -e HOST=elasticsearch-hq.example.com \
            -e PASSWORD=correcthorsebatterystaple \
+           -e SCHEME=http \
            -e PORT=80 \
            ianblenke/nginx-elasticsearch-hq
 ```
@@ -21,4 +22,7 @@ When it asks for something to connect to, you can point it at the same web serve
 
 http://elasticsearch-hq.example.com:8080/index.html?url=http://elasticsearch-hq.example.com:8080#
 
-This is from the perspective of the web browser, and is what it will use to talk to the elasticsearch server. You probably should use HTTPS urls as only basic auth is used, but there is nothing here requiring you to do that.
+This is from the perspective of the web browser, and is what it will use to talk to the elasticsearch server.
+
+The default SCHEME is HTTPS. You probably should use HTTPS urls as only basic auth is used, but there is nothing here requiring you to do that.
+This really should use digest auth anyway.
