@@ -31,8 +31,8 @@ if [ "${SCHEME}" == "https" ]; then
 
 cat <<EOF >> $CONFDIR/default.conf
   # Enforce SSL
-  if (\$http_x_forwarded_proto != 'https') {
-    rewrite ^ https://\$host$request_uri? permanent;
+  if (\$http_x_forwarded_proto != '$SCHEME') {
+    rewrite ^ $SCHEME://\$host$request_uri? permanent;
   } 
 EOF
 
