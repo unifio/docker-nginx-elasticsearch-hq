@@ -1,19 +1,17 @@
 #!/bin/bash
 set -e
 
-[ -n "$HOST" ] || ( echo "HOST required - You must supply the FQDN of the public host"; false )
-
-SCHEME=${SCHEME:-https}
+SCHEME=${SCHEME:-http}
 USERNAME=${USERNAME:-elasticsearch-hq}
-PASSWORD=${PASSWORD:-elasticsearch$RANDOM}
-ES_HOST=${ES_HOST:-172.17.42.1}
 ES_PORT=${ES_PORT:-9200}
+ES_HOST=${ES_HOST:-elasticsearch}
 PORT=${PORT:-80}
 
-echo "$USERNAME:$(openssl passwd -crypt $PASSWORD)" > /passwords
 
 CONFDIR=/etc/nginx/conf
 [ -d /etc/nginx/conf.d ] && CONFDIR=/etc/nginx/conf.d
+
+unlink $CONFDIR/default.conf
 
 cat <<EOF > $CONFDIR/default.conf
 upstream elasticsearch {
@@ -22,25 +20,31 @@ upstream elasticsearch {
 }
 server {
   listen                *:$PORT ;
-  server_name           $HOST;
+  server_name           _ default;
   access_log            /dev/stdout;
   error_log             /dev/stderr;
 EOF
 
 if [ "${SCHEME}" == "https" ]; then
-
 cat <<EOF >> $CONFDIR/default.conf
   # Enforce SSL
   if (\$http_x_forwarded_proto != '$SCHEME') {
     rewrite ^ $SCHEME://\$host$request_uri? permanent;
-  } 
+  }
+EOF
+fi
+
+if [ "$PASSWORD" != "" ]; then
+
+echo "$USERNAME:$(openssl passwd -crypt $PASSWORD)" > /passwords
+cat <<EOF >> $CONFDIR/default.conf
+  auth_basic "Protected Kibana";
+  auth_basic_user_file /passwords;
 EOF
 
 fi
 
 cat <<EOF >> $CONFDIR/default.conf
-  auth_basic "Protected Kibana";
-  auth_basic_user_file /passwords;
   proxy_read_timeout 90;
   proxy_http_version 1.1;
   proxy_set_header Connection "Keep-Alive";
@@ -50,7 +54,7 @@ cat <<EOF >> $CONFDIR/default.conf
   proxy_set_header X-ELB-IP \$remote_addr;
   proxy_set_header X-ELB-Forwarded-For \$proxy_add_x_forwarded_for;
   proxy_set_header Host \$http_host;
-  proxy_set_header Referer $HOST;
+  proxy_set_header Referer \$http_referer;
 
   # For CORS Ajax
   proxy_pass_header Access-Control-Allow-Origin;
@@ -59,7 +63,7 @@ cat <<EOF >> $CONFDIR/default.conf
   add_header Access-Control-Allow-Headers 'X-Requested-With, Content-Type';
   add_header Access-Control-Allow-Credentials true;
 
-  location = / {
+  location /elastic-search-proxy {
     if (\$request_method = OPTIONS ) {
       add_header Access-Control-Allow-Origin "$SCHEME://$HOST";
       add_header Access-Control-Allow-Methods "GET, OPTIONS";
@@ -69,15 +73,14 @@ cat <<EOF >> $CONFDIR/default.conf
       add_header Content-Type text/plain;
       return 200;
     }
-
-    proxy_pass http://elasticsearch;
-
+    proxy_pass http://elasticsearch/;
     expires max;
     access_log on;
   }
+
   location / {
+    rewrite ^/$ index.html?url=$SCHEME://\$http_host/elastic-search-proxy redirect;
     root /app;
-
     if (\$request_method = OPTIONS ) {
       add_header Access-Control-Allow-Origin "$SCHEME://$HOST";
       add_header Access-Control-Allow-Methods "GET, OPTIONS";
@@ -87,17 +90,10 @@ cat <<EOF >> $CONFDIR/default.conf
       add_header Content-Type text/plain;
       return 200;
     }
-
     index index.html;
-
-    try_files \$uri \$uri/ @proxypass;
-
+#    try_files \$uri \$uri/;
     expires max;
     access_log on;
-  }
-
-  location @proxypass {
-    proxy_pass http://elasticsearch;
   }
 }
 EOF
