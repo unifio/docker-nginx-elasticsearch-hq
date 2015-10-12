@@ -4,6 +4,7 @@ FROM nginx:1.9
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
 
+# https://github.com/royrusso/elasticsearch-HQ/archive/master.tar.gz
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
     apt-get install -y git && \
