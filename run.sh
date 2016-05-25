@@ -1,11 +1,8 @@
 #!/bin/bash
 set -e
 
-USERNAME=${USERNAME:-elasticsearch-hq}
 ES_PORT=${ES_PORT:-9200}
 ES_HOST=${ES_HOST:-elasticsearch}
-PORT=${PORT:-80}
-
 
 CONFDIR=/etc/nginx/conf
 [ -d /etc/nginx/conf.d ] && CONFDIR=/etc/nginx/conf.d
@@ -18,23 +15,11 @@ upstream elasticsearch {
   keepalive 15;
 }
 server {
-  listen                *:$PORT ;
+  listen                *:80 ;
   server_name           _ default;
   access_log            /dev/stdout;
   error_log             /dev/stderr;
-EOF
 
-if [ "$PASSWORD" != "" ]; then
-
-echo "$USERNAME:$(openssl passwd -crypt $PASSWORD)" > /passwords
-cat <<EOF >> $CONFDIR/default.conf
-  auth_basic "Protected Kibana";
-  auth_basic_user_file /passwords;
-EOF
-
-fi
-
-cat <<EOF >> $CONFDIR/default.conf
   proxy_read_timeout 90;
   proxy_http_version 1.1;
   proxy_set_header Connection "Keep-Alive";
