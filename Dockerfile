@@ -1,10 +1,10 @@
-FROM nginx:1.10-alpine
+FROM nginx:1.12.1-alpine
 
 EXPOSE 80
 
-ADD https://github.com/royrusso/elasticsearch-HQ/archive/v2.0.3.tar.gz /
-RUN tar -xzf v2.0.3.tar.gz && unlink v2.0.3.tar.gz
-RUN mv elasticsearch-HQ-* /app
+ADD https://github.com/royrusso/elasticsearch-HQ/tarball/master /
+RUN tar -xzf master && unlink master
+RUN mv *elasticsearch-HQ-* /app
 
 # forward request and error logs to docker log collector
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
